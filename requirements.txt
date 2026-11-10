@@ -6,6 +6,8 @@ accelerate>=0.28.0
 datasets>=2.18.0
 evaluate>=0.4.1
 synthid-text @ git+https://github.com/google-deepmind/synthid-text.git
+mlx>=0.22.0; sys_platform == 'darwin'
+mlx-lm>=0.20.0; sys_platform == 'darwin'
 
 # Numerical, Evaluation & Statistics
 numpy>=1.24.0
