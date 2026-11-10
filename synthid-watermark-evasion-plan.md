@@ -65,23 +65,23 @@ Utility:  Semantic Similarity F1 = 0.556 (Random edits degraded grammar without 
 
 | Attack Method | Budget ($k$) | Actual Edits % | Mean $z$-score | Mean $p$-value | **Evasion Rate ($p > 0.05$)** | **BERTScore F1** |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Unperturbed (Control)** | 0.00 | 0.0% | 3.79 | 0.0155 | **10.0%** | **1.000** |
-| **Attack A (Optimized)** | **0.05** | **4.3%** | **3.11** | **0.0315** | **20.0%** | **0.842** |
-| **Attack A (Optimized)** | **0.10** | **6.0%** | **2.79** | **0.0232** | **20.0%** | **0.808** |
-| **Attack A (Optimized)** | **0.15** | **6.0%** | **3.32** | **0.0170** | **10.0%** | **0.808** |
-| Attack A (Iterative Looped) | 0.05 | 4.3% | 3.15 | 0.0311 | **20.0%** | 0.840 |
-| Attack A (Iterative Looped) | 0.10 | 6.0% | 2.82 | 0.0224 | **10.0%** | 0.815 |
-| Attack A (Iterative Looped) | 0.15 | 5.7% | 2.66 | 0.0408 | **30.0%** | 0.809 |
-| Attack A (Single-Pass) | 0.05 | 4.8% | 2.93 | 0.0193 | **10.0%** | 0.825 |
-| Attack A (Single-Pass) | 0.10 | 9.5% | 2.92 | 0.0227 | **10.0%** | 0.684 |
-| Attack A (Single-Pass) | 0.15 | 13.5% | 2.76 | 0.0363 | **30.0%** | 0.618 |
-| Random Replacement | 0.05 | 5.0% | 3.00 | 0.0317 | **20.0%** | 0.825 |
-| Random Replacement | 0.10 | 10.0% | 2.87 | 0.0191 | **10.0%** | 0.703 |
-| Random Replacement | 0.15 | 15.0% | 2.21 | 0.0811 | **30.0%** | 0.564 |
-| Entropy-Only Replacement | 0.05 | 5.0% | 3.13 | 0.0554 | **20.0%** | 0.841 |
-| Entropy-Only Replacement | 0.10 | 10.0% | 2.81 | 0.0826 | **20.0%** | 0.663 |
-| Entropy-Only Replacement | 0.15 | 15.0% | 2.33 | 0.1007 | **20.0%** | 0.493 |
-| **Attack B (Live LM Studio Paraphraser)** | **0.12** | **12.0%** | **0.73** | **0.2321** | **100.0%** | **0.092** |
+| **Unperturbed (Control)** | 0.00 | 0.0% | 3.90 | 0.0155 | **10.0%** | **1.0000** |
+| **Attack A (Optimized)** | **0.05** | **4.4%** | **2.80** | **0.0185** | **20.0%** | **0.9559** |
+| **Attack A (Optimized)** | **0.10** | **8.1%** | **2.26** | **0.0301** | **30.0%** | **0.9200** |
+| **Attack A (Optimized)** | **0.15** | **9.9%** | **1.68** | **0.0721** | **80.0%** | **0.9018** |
+| Attack A (Iterative Looped) | 0.05 | 4.4% | 2.80 | 0.0185 | **20.0%** | 0.9559 |
+| Attack A (Iterative Looped) | 0.10 | 8.1% | 2.26 | 0.0301 | **30.0%** | 0.9200 |
+| Attack A (Iterative Looped) | 0.15 | 9.9% | 1.68 | 0.0721 | **80.0%** | 0.9018 |
+| Attack A (Single-Pass) | 0.05 | 4.4% | 2.80 | 0.0185 | **20.0%** | 0.9559 |
+| Attack A (Single-Pass) | 0.10 | 8.1% | 2.26 | 0.0301 | **30.0%** | 0.9200 |
+| Attack A (Single-Pass) | 0.15 | 9.9% | 1.68 | 0.0721 | **80.0%** | 0.9018 |
+| Random Replacement | 0.05 | 5.0% | 3.09 | 0.0314 | **20.0%** | 0.9500 |
+| Random Replacement | 0.10 | 10.0% | 2.98 | 0.0185 | **10.0%** | 0.9000 |
+| Random Replacement | 0.15 | 15.0% | 2.20 | 0.0810 | **30.0%** | 0.8508 |
+| Entropy-Only Replacement | 0.05 | 5.0% | 3.10 | 0.0554 | **20.0%** | 0.9500 |
+| Entropy-Only Replacement | 0.10 | 10.0% | 2.68 | 0.0827 | **20.0%** | 0.9000 |
+| Entropy-Only Replacement | 0.15 | 15.0% | 2.24 | 0.1132 | **30.0%** | 0.8500 |
+| **Attack B (Live LM Studio Paraphraser)** | **0.12** | **12.0%** | **-0.35** | **0.6385** | **100.0%** | **0.0431** |
 
 ---
 
