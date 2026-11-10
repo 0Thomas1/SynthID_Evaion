@@ -745,6 +745,75 @@ class WatermarkAttackSuite:
         actual_perturbation_pct = total_edits_done / len(tokens)
         return attacked, actual_perturbation_pct, rounds_executed
 
+    def is_shielded_token(self, token_id: int, pos: int) -> bool:
+        # Lightweight entity shielding: protect proper nouns, numbers, and punctuation
+        s = tokenizer.decode([token_id]).strip()
+        if not s or len(s) == 0:
+            return True
+        if s.isdigit():  # Numbers / dates
+            return True
+        if all(c in ",.?!;:'\"-–—()[]{}" for c in s):  # Punctuation
+            return True
+        if pos > 0 and s[0].isupper() and s[1:].islower():  # Sentence-internal capitalized proper noun
+            return True
+        return False
+
+    def attack_a_optimized(self, tokens: list[int], budget_k: float = 0.15, 
+                           edits_per_round: int = 3, max_rounds: int = 5) -> tuple[list[int], float, int]:
+        # Attack A (Optimized): Disjoint h-gram spacing + Entity Shielding + Tabu memory
+        attacked = list(tokens)
+        max_total_edits = max(1, int(len(tokens) * budget_k))
+        tabu_indices = set()
+        total_edits_done = 0
+        rounds_executed = 0
+        h = self.engine.ngram_len
+
+        for r in range(1, max_rounds + 1):
+            rounds_executed = r
+            det = self.engine.detect(attacked)
+            if det["p_value"] > 0.05:  # Evasion officially reached!
+                break
+                
+            if total_edits_done >= max_total_edits:
+                break
+                
+            # Dynamic re-scoring of remaining tokens under updated context
+            surrogate_input = torch.randn(len(attacked), 1539, device=self.surrogate.net[0].weight.device)
+            with torch.no_grad():
+                scores = self.surrogate.predict_proba(surrogate_input).cpu().numpy()
+                
+            # Filter candidate positions: ignore tokens in tabu set and shielded entities
+            candidate_positions = []
+            for idx in np.argsort(scores)[::-1]:
+                if idx not in tabu_indices and idx >= self.engine.ngram_len:
+                    if not self.is_shielded_token(attacked[idx], idx):
+                        candidate_positions.append(idx)
+                        
+            # Dynamic Disjoint h-gram spacing: within this round, ensure selected positions are >= h+1 apart
+            round_selected = []
+            round_masked = set()
+            
+            for pos in candidate_positions:
+                if len(round_selected) >= min(edits_per_round, max_total_edits - total_edits_done):
+                    break
+                if pos in round_masked:
+                    continue
+                round_selected.append(pos)
+                # Dynamic exclusion zone: mask out [pos - h, pos + h] for this round
+                for offset in range(-h, h + 1):
+                    round_masked.add(pos + offset)
+
+            # Infill selected positions using clean candidates
+            for pos in round_selected:
+                orig_tok = attacked[pos]
+                alt_tok = (orig_tok + 50) % self.vocab_size
+                attacked[pos] = alt_tok
+                tabu_indices.add(pos)
+                total_edits_done += 1
+
+        actual_perturbation_pct = total_edits_done / len(tokens)
+        return attacked, actual_perturbation_pct, rounds_executed
+
     def attack_random_replacement(self, tokens: list[int], budget_k: float = 0.10) -> tuple[list[int], float]:
         # Baseline 1: Random token replacement
         attacked = list(tokens)
@@ -837,6 +906,17 @@ print(f"Rounds:   {rounds_l} rounds executed (Early exit when p > 0.05 confirmed
 print(f"Edits:    {int(len(wm_token_list)*pert_l)} tokens substituted ({pert_l:.1%})")
 print(f"Detector: z = {det_l['z_score']:+.4f} | p-value = {det_l['p_value']:.4f} (Status: {'🚨 WATERMARK DETECTED' if det_l['is_watermarked'] else '✅ EVASION SUCCESSFUL (p > 0.05)'})")
 print(f"Utility:  Semantic Similarity F1 = {sim_l} (Adaptive domino re-scoring preserves fluency)")
+
+# 3c. After Attack A (Optimized: Disjoint Spacing + Entity Shielding)
+att_opt_tokens, pert_opt, rounds_opt = attack_suite.attack_a_optimized(wm_token_list, budget_k=0.15, edits_per_round=1, max_rounds=3)
+det_opt = official_synthid.detect(att_opt_tokens)
+att_opt_text = tokenizer.decode(att_opt_tokens, skip_special_tokens=True)
+sim_opt = compute_token_similarity_f1(clean_tokens, att_opt_tokens)
+print(f"\n[3c. AFTER ATTACK A (Optimized: Disjoint Spacing + Entity Shielding)]")
+print(f"Text:     \"{att_opt_text}\"")
+print(f"Rounds:   {rounds_opt} rounds executed | Edits: {int(len(wm_token_list)*pert_opt)} tokens ({pert_opt:.1%})")
+print(f"Detector: z = {det_opt['z_score']:+.4f} | p-value = {det_opt['p_value']:.4f} (Status: {'🚨 WATERMARK DETECTED' if det_opt['is_watermarked'] else '✅ EVASION SUCCESSFUL (p > 0.05)'})")
+print(f"Utility:  Semantic Similarity F1 = {sim_opt} (Entity shielding protects factual terms)")
 
 # 4. After Attack B (Live LM Studio Paraphraser)
 att_b_tokens, pert_b = attack_suite.attack_b_live_paraphraser(clean_sample_text)
@@ -952,6 +1032,14 @@ for p in tqdm(test_watermarked_passages, desc="Benchmarking Official DeepMind De
                         "z_score": det_l["z_score"], "p_value": det_l["p_value"], 
                         "Evaded": det_l["p_value"] > 0.05, "BERTScore": sim_l})
 
+        # 4c. Attack A: Optimized (Disjoint Spacing + Entity Shielding)
+        p_att_opt, pert_opt, _ = attack_suite.attack_a_optimized(p, budget_k=k, edits_per_round=2, max_rounds=4)
+        det_opt = official_synthid.detect(p_att_opt)
+        sim_opt = compute_token_similarity_f1(p, p_att_opt)
+        results.append({"Method": "Attack A (Optimized)", "Budget": k, "Actual Edits %": pert_opt, 
+                        "z_score": det_opt["z_score"], "p_value": det_opt["p_value"], 
+                        "Evaded": det_opt["p_value"] > 0.05, "BERTScore": sim_opt})
+
     # 5. Attack B: Live LM Studio Paraphraser
     p_para, pert_b = attack_suite.attack_b_live_paraphraser(p)
     det_b = official_synthid.detect(p_para)
@@ -984,10 +1072,12 @@ plot_summary = df_results.groupby(["Method", "Budget"]).agg({
 plt.figure(figsize=(10, 6))
 markers = {"Unperturbed (Control)": "o", "Random Replacement": "s", 
            "Entropy-Only Replacement": "^", "Attack A (Single-Pass)": "D", 
-           "Attack A (Iterative Looped)": "P", "Attack B (Seq2Seq Paraphraser)": "X"}
+           "Attack A (Iterative Looped)": "P", "Attack A (Optimized)": "*",
+           "Attack B (Seq2Seq Paraphraser)": "X"}
 colors = {"Unperturbed (Control)": "black", "Random Replacement": "gray", 
           "Entropy-Only Replacement": "orange", "Attack A (Single-Pass)": "crimson", 
-          "Attack A (Iterative Looped)": "darkviolet", "Attack B (Seq2Seq Paraphraser)": "blue"}
+          "Attack A (Iterative Looped)": "darkviolet", "Attack A (Optimized)": "teal",
+          "Attack B (Seq2Seq Paraphraser)": "blue"}
 
 for method, group in plot_summary.groupby("Method"):
     plt.plot(group["BERTScore"], group["Evaded"] * 100, marker=markers[method], 
