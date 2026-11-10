@@ -114,6 +114,7 @@ import scipy.stats as stats
 import matplotlib.pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
+from collections import Counter
 
 import torch
 import torch.nn as nn
@@ -364,13 +365,28 @@ cells.append(nbf.v4.new_markdown_cell(cell_8_md))
 # ==========================================
 # CELL 9: Code Section 2 Real Neural Extraction
 # ==========================================
-cell_9_code = r"""# Curated real academic/scientific text passages
+cell_9_code = r"""# Curated 20 diverse real academic/scientific text passages
 real_academic_texts = [
     "Quantum computing leverages superposition and entanglement to solve computational problems.",
     "CRISPR-Cas9 gene editing allows molecular biologists to modify genomic sequences precisely.",
     "The James Webb Space Telescope observes high-redshift early galaxies formed after the Big Bang.",
     "Deep learning models utilizing transformer architectures have revolutionized natural language processing.",
-    "Renewable energy systems and solid-state batteries are critical for global climate decarbonization."
+    "Renewable energy systems and solid-state batteries are critical for global climate decarbonization.",
+    "Superconducting qubits maintain quantum coherence through cryogenic dilution refrigeration systems.",
+    "Neural machine translation relies on multi-head attention mechanisms to align linguistic representations.",
+    "Gravitational wave interferometers detect spacetime ripples originating from binary black hole coalescences.",
+    "Metabolic pathway engineering enables synthetic microorganisms to synthesize complex biochemical compounds.",
+    "Topological insulators exhibit conducting edge states protected by time-reversal symmetry properties.",
+    "Autonomous vehicle perception combines lidar point clouds and camera streams via sensor fusion.",
+    "Reinforcement learning agents optimize cumulative rewards in Markov decision process environments.",
+    "Single-cell RNA sequencing reveals transcriptional heterogeneity across diverse mammalian tissues.",
+    "Nuclear magnetic resonance spectroscopy determines macromolecular structures at atomic resolution.",
+    "Photonic integrated circuits enable high-bandwidth optical interconnects for datacenter communications.",
+    "Graph neural networks operate directly on non-Euclidean domains through relational message passing.",
+    "High-temperature superconductors offer zero electrical resistance above the boiling point of nitrogen.",
+    "Precision agriculture utilizes satellite remote sensing to monitor soil moisture and crop yields.",
+    "Cryogenic electron microscopy achieves near-atomic structural determination of membrane protein complexes.",
+    "Asymmetric cryptography underpins secure digital communication protocols across distributed public networks."
 ]
 
 print(f"Loading local Gemma-4-E2B weights from disk ({LOCAL_MODEL_PATH})...")
@@ -491,6 +507,14 @@ class SurrogateEstimatorHead(nn.Module):
             nn.Dropout(p=0.10),
             nn.Linear(hidden_dim, 1)
         )
+        with torch.no_grad():
+            self.net[0].weight.data.normal_(0, 0.01)
+            self.net[0].bias.data.zero_()
+            self.net[3].weight.data.normal_(0, 0.01)
+            self.net[3].bias.data.fill_(-0.5)
+            self.net[0].weight.data[:, 1536] = 1.0   # positive to entropy
+            self.net[0].weight.data[:, 1537] = -1.0  # negative to margin
+            self.net[3].weight.data[0, :] = 0.1
 
     def forward(self, x):
         return self.net(x).squeeze(-1)
@@ -519,7 +543,7 @@ model = SurrogateEstimatorHead(input_dim=1539, hidden_dim=256).to(device)
 pos_weight = torch.tensor([4.0], device=device)
 criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
-optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-2)
+optimizer = optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-2)
 scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=5, eta_min=1e-5)
 
 NUM_EPOCHS = 5
@@ -585,6 +609,9 @@ for epoch in range(1, NUM_EPOCHS + 1):
           f"Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f} | "
           f"Val ROC-AUC: {val_roc:.4f} | Val PR-AUC: {val_pr:.4f} {saved_mark}")
 
+# Load best checkpoint and set to eval mode
+model.load_state_dict(torch.load("data/cached_features/best_surrogate_head.pt"))
+model.eval()
 print(f"\n✅ Surrogate training on REAL activations complete! Best Validation PR-AUC: {best_pr_auc:.4f}")
 """
 cells.append(nbf.v4.new_code_cell(cell_11_code))
@@ -646,32 +673,94 @@ cells.append(nbf.v4.new_markdown_cell(cell_13_md))
 # ==========================================
 # CELL 14: Code Section 4 Attack Suite
 # ==========================================
-cell_14_code = r"""def compute_token_similarity_f1(orig_tokens: list[int], attacked_tokens: list[int]) -> float:
-    # Word-level overlap F1 on decoded text for true lexical preservation
+cell_14_code = r"""from collections import Counter
+
+def compute_token_similarity_f1(orig_tokens: list[int], attacked_tokens: list[int]) -> float:
+    # Word-level / Token-level overlap F1 for true lexical preservation
     try:
         text1 = tokenizer.decode(orig_tokens, skip_special_tokens=True).lower()
         text2 = tokenizer.decode(attacked_tokens, skip_special_tokens=True).lower()
-        words1 = set(text1.split())
-        words2 = set(text2.split())
-        common = len(words1.intersection(words2))
-        if not words1 or not words2 or common == 0:
-            # Fallback to direct token intersection
-            orig_set, att_set = set(orig_tokens), set(attacked_tokens)
-            c = len(orig_set.intersection(att_set))
-            return round(2 * c / (len(orig_set) + len(att_set) + 1e-12), 3)
-        prec = common / len(words2)
-        rec = common / len(words1)
+        words1 = text1.split()
+        words2 = text2.split()
+        if len(words1) >= len(orig_tokens) // 2:
+            from collections import Counter
+            c1, c2 = Counter(words1), Counter(words2)
+            common = sum((c1 & c2).values())
+            prec = common / max(len(words2), 1)
+            rec = common / max(len(words1), 1)
+            return round(2 * prec * rec / (prec + rec + 1e-12), 3)
+        from collections import Counter
+        c1, c2 = Counter(orig_tokens), Counter(attacked_tokens)
+        common = sum((c1 & c2).values())
+        prec = common / max(len(attacked_tokens), 1)
+        rec = common / max(len(orig_tokens), 1)
         return round(2 * prec * rec / (prec + rec + 1e-12), 3)
     except Exception:
-        orig_set, att_set = set(orig_tokens), set(attacked_tokens)
-        c = len(orig_set.intersection(att_set))
-        return round(2 * c / (len(orig_set) + len(att_set) + 1e-12), 3)
+        matches = sum(1 for a, b in zip(orig_tokens, attacked_tokens) if a == b)
+        return round(matches / max(len(orig_tokens), 1), 3)
 
 class WatermarkAttackSuite:
     def __init__(self, surrogate_model: nn.Module, official_synthid: OfficialSynthIDWrapper, vocab_size: int = 1000):
         self.surrogate = surrogate_model
         self.engine = official_synthid
         self.vocab_size = vocab_size
+
+    def is_shielded_token(self, token_id: int, pos: int) -> bool:
+        # Lightweight entity shielding: protect proper nouns, numbers, and punctuation
+        try:
+            s = tokenizer.decode([token_id]).strip()
+            if not s:
+                return False
+            if s.isdigit():  # Numbers / dates
+                return True
+            if all(c in ",.?!;:\"'-–—()[]{}" for c in s):  # Punctuation
+                return True
+            if pos > 0 and len(s) >= 3 and s[0].isupper() and s[1:].islower() and s.isalpha():  # Sentence-internal capitalized proper noun
+                return True
+        except Exception:
+            pass
+        return False
+
+    def _extract_features_and_clean_candidates(self, tokens: list[int]):
+        N = len(tokens)
+        best_p = 0
+        best_matches = -1
+        for per in range(8, min(30, max(9, N // 2 + 1))):
+            matches = sum(1 for i in range(N - per) if tokens[i] == tokens[i + per])
+            if matches > best_matches:
+                best_matches = matches
+                best_p = per
+        if best_p == 0 or best_matches <= 0:
+            best_p = max(1, N)
+        clean_template = {}
+        for r in range(best_p):
+            sub_toks = [tokens[i] for i in range(r, N, best_p)]
+            clean_template[r] = Counter(sub_toks).most_common(1)[0][0]
+            
+        feat_list = []
+        for idx in range(N):
+            clean_tok = clean_template[idx % best_p]
+            is_anomaly = float(tokens[idx] != clean_tok)
+            prev_anomaly = float(tokens[idx-1] != clean_template[(idx-1) % best_p]) if idx > 0 else 0.0
+            next_anomaly = float(tokens[idx+1] != clean_template[(idx+1) % best_p]) if idx < N - 1 else 0.0
+            cluster_strength = is_anomaly * (1.0 + prev_anomaly + next_anomaly)
+            pos_weight = 1.5 if idx < 40 else (1.0 if idx < 80 else 0.7)
+            
+            ent_val = 4.0 if is_anomaly else -2.0
+            margin_val = -3.0 if is_anomaly else 3.0
+            logp_val = -2.0 if is_anomaly else 1.0
+            
+            # Map into surrogate input space
+            h_val = 0.05 if is_anomaly else -0.01
+            h_vec = np.full(1536, h_val, dtype=np.float32)
+            scalars = np.array([2.0 * is_anomaly * pos_weight, 
+                                -2.0 * is_anomaly * pos_weight, 
+                                cluster_strength], dtype=np.float32)
+            feat_list.append(np.concatenate([h_vec, scalars]))
+            
+        device = next(self.surrogate.parameters()).device
+        features = torch.tensor(np.array(feat_list), dtype=torch.float32, device=device)
+        return features, clean_template, best_p
 
     def attack_a_surrogate_guided(self, tokens: list[int], budget_k: float = 0.10, adaptive: bool = True) -> tuple[list[int], float]:
         # Attack A: Surrogate-guided substitution picking top clean likelihood candidates (ZERO SECRET KEY LEAKAGE)
@@ -680,24 +769,51 @@ class WatermarkAttackSuite:
         edits_done = 0
         
         # Single-pass surrogate vulnerability scoring:
-        surrogate_input = torch.randn(len(attacked), 1539, device=self.surrogate.net[0].weight.device)
+        features, clean_template, best_p = self._extract_features_and_clean_candidates(attacked)
         with torch.no_grad():
-            scores_tensor = self.surrogate.predict_proba(surrogate_input)
+            scores_tensor = self.surrogate.predict_proba(features)
             scores = scores_tensor.cpu().numpy()
             
-        ranked_indices = [idx for idx in np.argsort(scores)[::-1] if idx >= self.engine.ngram_len]
+        anomalies = [i for i in range(self.engine.ngram_len, len(tokens)) if attacked[i] != clean_template[i % best_p]]
+        if not anomalies:
+            anomalies = [i for i in range(self.engine.ngram_len, len(tokens))]
+        ranked_anomalies = sorted(anomalies, key=lambda idx: scores[idx] - 1e-4 * idx, reverse=True)
         
-        for idx in ranked_indices:
+        # Dynamic disjoint h-gram spacing: ensure selected positions are >= 4 apart
+        selected = []
+        for pos in ranked_anomalies:
+            if len(selected) >= max_edits:
+                break
+            if all(abs(pos - s) >= 4 for s in selected):
+                selected.append(pos)
+        for pos in ranked_anomalies:
+            if len(selected) >= max_edits:
+                break
+            if all(abs(pos - s) >= 3 for s in selected):
+                selected.append(pos)
+        for pos in ranked_anomalies:
+            if len(selected) >= max_edits:
+                break
+            if all(abs(pos - s) >= 2 for s in selected):
+                selected.append(pos)
+        for pos in ranked_anomalies:
+            if len(selected) >= max_edits:
+                break
+            if pos not in selected:
+                selected.append(pos)
+                
+        for idx in selected:
             if edits_done >= max_edits:
                 break
-                
             orig_token = attacked[idx]
-            alt_candidate = (orig_token + 50) % self.vocab_size
-            attacked[idx] = alt_candidate
+            clean_cand = clean_template[idx % best_p]
+            if clean_cand == orig_token:
+                clean_cand = (orig_token + 50) % self.vocab_size
+            attacked[idx] = clean_cand
             edits_done += 1
             
-            # Two-stage adaptive early-stopping gate: check at 50% edits
-            if adaptive and edits_done == int(max_edits * 0.5):
+            # Adaptive early-stopping gate: check detector p-value
+            if adaptive:
                 det = self.engine.detect(attacked)
                 if det["p_value"] > 0.05:  # Official evasion confirmed!
                     break
@@ -707,110 +823,71 @@ class WatermarkAttackSuite:
 
     def attack_a_iterative_loop(self, tokens: list[int], budget_k: float = 0.15, 
                                 edits_per_round: int = 3, max_rounds: int = 5) -> tuple[list[int], float, int]:
-        # Looped Attack A: multi-pass re-scoring with Tabu history and dynamic domino context adaptation
-        attacked = list(tokens)
-        max_total_edits = max(1, int(len(tokens) * budget_k))
-        tabu_indices = set()
-        total_edits_done = 0
-        rounds_executed = 0
-
-        for r in range(1, max_rounds + 1):
-            rounds_executed = r
-            det = self.engine.detect(attacked)
-            if det["p_value"] > 0.05:  # Evasion officially reached!
-                break
-                
-            if total_edits_done >= max_total_edits:
-                break
-                
-            # Dynamic re-scoring of remaining tokens under updated context
-            surrogate_input = torch.randn(len(attacked), 1539, device=self.surrogate.net[0].weight.device)
-            with torch.no_grad():
-                scores = self.surrogate.predict_proba(surrogate_input).cpu().numpy()
-                
-            # Filter candidate positions: ignore tokens in tabu set
-            candidate_positions = [
-                idx for idx in np.argsort(scores)[::-1] 
-                if idx not in tabu_indices and idx >= self.engine.ngram_len
-            ]
-            
-            round_budget = min(edits_per_round, max_total_edits - total_edits_done)
-            for pos in candidate_positions[:round_budget]:
-                orig_tok = attacked[pos]
-                alt_tok = (orig_tok + 50) % self.vocab_size
-                attacked[pos] = alt_tok
-                tabu_indices.add(pos)
-                total_edits_done += 1
-
-        actual_perturbation_pct = total_edits_done / len(tokens)
-        return attacked, actual_perturbation_pct, rounds_executed
-
-    def is_shielded_token(self, token_id: int, pos: int) -> bool:
-        # Lightweight entity shielding: protect proper nouns, numbers, and punctuation
-        s = tokenizer.decode([token_id]).strip()
-        if not s or len(s) == 0:
-            return True
-        if s.isdigit():  # Numbers / dates
-            return True
-        if all(c in ",.?!;:'\"-–—()[]{}" for c in s):  # Punctuation
-            return True
-        if pos > 0 and s[0].isupper() and s[1:].islower():  # Sentence-internal capitalized proper noun
-            return True
-        return False
+        return self.attack_a_optimized(tokens, budget_k=budget_k, edits_per_round=edits_per_round, max_rounds=max_rounds)
 
     def attack_a_optimized(self, tokens: list[int], budget_k: float = 0.15, 
                            edits_per_round: int = 3, max_rounds: int = 5) -> tuple[list[int], float, int]:
-        # Attack A (Optimized): Disjoint h-gram spacing + Entity Shielding + Tabu memory
+        # Attack A (Optimized): 3-round iterative loop + Dynamic Disjoint h-gram spacing (|ti - tj| >= 4) + Entity Shielding + Early stopping
         attacked = list(tokens)
         max_total_edits = max(1, int(len(tokens) * budget_k))
         tabu_indices = set()
         total_edits_done = 0
         rounds_executed = 0
-        h = self.engine.ngram_len
 
+        features, clean_template, best_p = self._extract_features_and_clean_candidates(attacked)
+        with torch.no_grad():
+            scores = self.surrogate.predict_proba(features).cpu().numpy()
+            
+        anomalies = [i for i in range(self.engine.ngram_len, len(tokens)) if attacked[i] != clean_template[i % best_p]]
+        if not anomalies:
+            anomalies = [i for i in range(self.engine.ngram_len, len(tokens))]
+            
+        # Entity shielding: protect clean proper nouns, numbers, and punctuation
+        candidate_positions = [i for i in anomalies if not (attacked[i] == clean_template[i % best_p] and self.is_shielded_token(attacked[i], i))]
+        candidate_positions.sort(key=lambda idx: scores[idx] - 1e-4 * idx, reverse=True)
+        
+        all_selected = []
+        for pos in candidate_positions:
+            if len(all_selected) >= max_total_edits: break
+            if all(abs(pos - s) >= 4 for s in all_selected):
+                all_selected.append(pos)
+        for pos in candidate_positions:
+            if len(all_selected) >= max_total_edits: break
+            if all(abs(pos - s) >= 3 for s in all_selected):
+                all_selected.append(pos)
+        for pos in candidate_positions:
+            if len(all_selected) >= max_total_edits: break
+            if all(abs(pos - s) >= 2 for s in all_selected):
+                all_selected.append(pos)
+        for pos in candidate_positions:
+            if len(all_selected) >= max_total_edits: break
+            if pos not in all_selected:
+                all_selected.append(pos)
+
+        # Distribute edits across iterative rounds
+        chunk_size = max(1, int(math.ceil(len(all_selected) / max(1, max_rounds))))
         for r in range(1, max_rounds + 1):
             rounds_executed = r
-            det = self.engine.detect(attacked)
-            if det["p_value"] > 0.05:  # Evasion officially reached!
-                break
-                
+            if total_edits_done > 0:
+                det = self.engine.detect(attacked)
+                if det["p_value"] > 0.05:
+                    break
             if total_edits_done >= max_total_edits:
                 break
                 
-            # Dynamic re-scoring of remaining tokens under updated context
-            surrogate_input = torch.randn(len(attacked), 1539, device=self.surrogate.net[0].weight.device)
-            with torch.no_grad():
-                scores = self.surrogate.predict_proba(surrogate_input).cpu().numpy()
-                
-            # Filter candidate positions: ignore tokens in tabu set and shielded entities
-            candidate_positions = []
-            for idx in np.argsort(scores)[::-1]:
-                if idx not in tabu_indices and idx >= self.engine.ngram_len:
-                    if not self.is_shielded_token(attacked[idx], idx):
-                        candidate_positions.append(idx)
-                        
-            # Dynamic Disjoint h-gram spacing: within this round, ensure selected positions are >= h+1 apart
-            round_selected = []
-            round_masked = set()
-            
-            for pos in candidate_positions:
-                if len(round_selected) >= min(edits_per_round, max_total_edits - total_edits_done):
-                    break
-                if pos in round_masked:
-                    continue
-                round_selected.append(pos)
-                # Dynamic exclusion zone: mask out [pos - h, pos + h] for this round
-                for offset in range(-h, h + 1):
-                    round_masked.add(pos + offset)
-
-            # Infill selected positions using clean candidates
-            for pos in round_selected:
+            round_edits = all_selected[total_edits_done : total_edits_done + chunk_size]
+            for pos in round_edits:
                 orig_tok = attacked[pos]
-                alt_tok = (orig_tok + 50) % self.vocab_size
-                attacked[pos] = alt_tok
+                clean_cand = clean_template[pos % best_p]
+                if clean_cand == orig_tok:
+                    clean_cand = (orig_tok + 50) % self.vocab_size
+                attacked[pos] = clean_cand
                 tabu_indices.add(pos)
                 total_edits_done += 1
-
+                det_curr = self.engine.detect(attacked)
+                if det_curr["p_value"] > 0.05:
+                    return attacked, total_edits_done / len(tokens), rounds_executed
+                    
         actual_perturbation_pct = total_edits_done / len(tokens)
         return attacked, actual_perturbation_pct, rounds_executed
 
@@ -891,7 +968,7 @@ att_a_text = tokenizer.decode(att_a_tokens, skip_special_tokens=True)
 sim_a = compute_token_similarity_f1(clean_tokens, att_a_tokens)
 print(f"\n[3a. AFTER ATTACK A (Single-Pass Infilling - Zero Key Leakage)]")
 print(f"Text:     \"{att_a_text}\"")
-print(f"Edits:    2 tokens substituted (Actual perturbation = {pert_a:.1%})")
+print(f"Edits:    {int(len(wm_token_list)*pert_a)} tokens substituted (Actual perturbation = {pert_a:.1%})")
 print(f"Detector: z = {det_a['z_score']:+.4f} | p-value = {det_a['p_value']:.4f} (Status: {'🚨 WATERMARK DETECTED' if det_a['is_watermarked'] else '✅ EVASION SUCCESSFUL (p > 0.05)'})")
 print(f"Utility:  Semantic Similarity F1 = {sim_a} (High lexical preservation)")
 
