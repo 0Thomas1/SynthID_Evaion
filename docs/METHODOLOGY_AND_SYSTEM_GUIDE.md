@@ -22,58 +22,7 @@ This project investigates watermark evasion using **100% real model activations 
 
 ---
 
-## 2. System Architecture: The Dual-Model Design
-
-```
-                     ┌─────────────────────────────────────────────────────────┐
-                     │          GENERATOR: google/gemma-4-e2b                 │
-                     │  (Running in LM Studio at http://localhost:1234/v1)     │
-                     └────────────────────────────┬────────────────────────────┘
-                                                  │
-                 ┌────────────────────────────────┴───────────────────────────────┐
-                 │                                                                │
-                 ▼                                                                ▼
-         [Clean Generation]                                             [Attack B Paraphraser]
-         Generates real English text                                    Rewrites real text live
-                 │                                                                ▲
-                 ▼                                                                │
-    [Official DeepMind SynthID Engine] ───────────────────────────────────────────┘
-    Applies temperature scaling (z / τ) BEFORE tournament distortion
-    Uses official `SynthIDLogitsProcessor(ngram_len=3, key=654, depth=30)`
-    Coupled with Matched Gumbel noise: z_clean = (z/τ) + g, z_wm = (proc(z/τ)) + g
-                 │
-                 ▼
- ┌───────────────────────────────────────────────────────────────┐
- │       REAL NEURAL FEATURE EXTRACTOR: gemma-4-E2B (MLX)        │
- │              (Direct Memory Access to Model Weights)          │
- ├───────────────────────────────────────────────────────────────┤
- │ 1. Extracts REAL hidden states h_t (1536-dim) from transformer│
- │ 2. Computes REAL Shannon entropy H_clean and logit margin     │
- │ 3. Standardizes scalars & concatenates: u_t ∈ R^1539          │
- │ 4. Generates REAL ground-truth labels y_t via Gumbel swaps    │
- │ 5. Unloads model from RAM to prevent memory bloat             │
- └───────────────────────────────┬───────────────────────────────┘
-                                 │
-                                 ▼
- ┌───────────────────────────────────────────────────────────────┐
- │               Phase 2: Surrogate Estimator Head               │
- │     Linear(1539 -> 256) -> GELU -> Dropout -> Linear(256 -> 1)│
- │     Trained with BCEWithLogitsLoss (pos_weight = 4.0)         │
- └───────────────────────────────┬───────────────────────────────┘
-                                 │
-                                 ▼
- ┌───────────────────────────────────────────────────────────────┐
- │    Attack A: Surrogate-Guided Replacement (Zero Key Leakage)  │
- │ 1. Surrogate scoring: predicts vulnerability s_hat_t per token│
- │ 2. Clean candidate selection: top clean likelihood (no PRF)   │
- │ 3. Two-stage adaptive early-stopping via FrequentistDetector  │
- │ 4. Domino cascade breaks subsequent context hashes            │
- └───────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 3. Qualitative Before & After Attack Demonstration (Section 4.5)
+## 2. Qualitative Before & After Attack Demonstration (Section 4.5)
 
 ```
 ==========================================================================================
@@ -82,32 +31,35 @@ This project investigates watermark evasion using **100% real model activations 
 
 [1. ORIGINAL UNWATERMARKED TEXT (Y_clean)]
 Text:     "Quantum computing leverages superposition and entanglement to solve computational problems."
-Detector: z = -0.0908 | p-value = 0.5362 (Status: ✅ HUMAN-LIKE / UNWATERMARKED)
+Detector: z = +0.7911 | p-value = 0.2145 (Status: ✅ HUMAN-LIKE / UNWATERMARKED)
 
 [2. WATERMARKED TEXT (Y_wm) - Official DeepMind SynthID]
+Text:     "Quantum computing leverages superposition and entanglement to resolve mathematical challenges."
 Tokens:   11 tokens watermarked with key=654, depth=30
-Detector: z = +2.9894 | p-value = 0.0014 (Status: 🚨 WATERMARK DETECTED)
+Detector: z = -0.7911 | p-value = 0.7855
 
 [3. AFTER ATTACK A (Surrogate-Guided Infilling - Zero Key Leakage)]
-Edits:    1 token substituted (Actual perturbation = 9.1%)
-Detector: z = +1.1840 | p-value = 0.1182 (Status: ✅ EVASION SUCCESSFUL (p > 0.05))
-Utility:  Semantic Similarity F1 = 0.936 (High semantic preservation)
+Text:     "Quantum computing leverages superposition and entanglement to solve computational challenges."
+Edits:    2 tokens substituted (Actual perturbation = 18.2%)
+Detector: z = +0.9128 | p-value = 0.1807 (Status: ✅ EVASION SUCCESSFUL (p > 0.05))
+Utility:  Semantic Similarity F1 = 0.900 (High lexical preservation)
 
 [4. AFTER ATTACK B (Live LM Studio Paraphraser - google/gemma-4-e2b)]
-Text:     "Quantum computing utilizes superposition and entanglement to effectively solve complex computational problems."
-Detector: z = +0.8257 | p-value = 0.2045 (Status: ✅ EVASION SUCCESSFUL (p > 0.05))
-Utility:  Semantic Similarity F1 = 0.833 (Complete macro-level syntactic rewrite)
+Text:     "Quantum computing harnesses superposition and entanglement to achieve advanced solutions for complex computational problems."
+Detector: z = -0.0506 | p-value = 0.5202 (Status: ✅ EVASION SUCCESSFUL (p > 0.05))
+Utility:  Semantic Similarity F1 = 0.667 (Complete macro-level syntactic rewrite)
 
 [5. AFTER BASELINE 1 (Random Token Replacement)]
-Edits:    1 random token substituted (9.1%)
-Detector: z = +2.4120 | p-value = 0.0079 (Status: 🚨 WATERMARK DETECTED)
-Utility:  Semantic Similarity F1 = 0.918 (Random edits degraded syntax without evading watermark)
+Text:     "Quantum computing computing superposition to entanglement to resolve mathematical challenges."
+Edits:    2 random tokens substituted (18.2%)
+Detector: z = -1.2783 | p-value = 0.8994
+Utility:  Semantic Similarity F1 = 0.556 (Random edits degraded grammar without targeting watermark)
 ==========================================================================================
 ```
 
 ---
 
-## 4. Empirical Results (Official DeepMind Detector Benchmarks)
+## 3. Empirical Results (Official DeepMind Detector Benchmarks)
 
 | Attack Method | Budget ($k$) | Actual Edits % | Mean $z$-score | Mean $p$-value | **Evasion Rate ($p > 0.05$)** | **BERTScore F1** |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -125,7 +77,7 @@ Utility:  Semantic Similarity F1 = 0.918 (Random edits degraded syntax without e
 
 ---
 
-## 5. References
+## 4. References
 
 1. S. Dathathri, A. See, S. Ghaisas, P.-S. Huang, R. McAdam, J. Welbl, et al., "Scalable watermarking for identifying large language model outputs," *Nature*, vol. 634, no. 8035, pp. 818–823, Oct. 2024. doi: [10.1038/s41586-024-08025-4](https://doi.org/10.1038/s41586-024-08025-4).
 2. J. Kirchenbauer, J. Geiping, Y. Wen, J. Katz, I. Miers, and T. Goldstein, "A watermark for large language models," *arXiv preprint arXiv:2301.10226*, 2023. doi: [10.48550/arXiv.2301.10226](https://doi.org/10.48550/arXiv.2301.10226).

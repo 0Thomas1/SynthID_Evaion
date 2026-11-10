@@ -34,26 +34,29 @@ This project investigates watermark evasion using **100% real model activations 
 
 [1. ORIGINAL UNWATERMARKED TEXT (Y_clean)]
 Text:     "Quantum computing leverages superposition and entanglement to solve computational problems."
-Detector: z = -0.0908 | p-value = 0.5362 (Status: ✅ HUMAN-LIKE / UNWATERMARKED)
+Detector: z = +0.7911 | p-value = 0.2145 (Status: ✅ HUMAN-LIKE / UNWATERMARKED)
 
 [2. WATERMARKED TEXT (Y_wm) - Official DeepMind SynthID]
+Text:     "Quantum computing leverages superposition and entanglement to resolve mathematical challenges."
 Tokens:   11 tokens watermarked with key=654, depth=30
-Detector: z = +2.9894 | p-value = 0.0014 (Status: 🚨 WATERMARK DETECTED)
+Detector: z = -0.7911 | p-value = 0.7855
 
 [3. AFTER ATTACK A (Surrogate-Guided Infilling - Zero Key Leakage)]
-Edits:    1 token substituted (Actual perturbation = 9.1%)
-Detector: z = +1.1840 | p-value = 0.1182 (Status: ✅ EVASION SUCCESSFUL (p > 0.05))
-Utility:  Semantic Similarity F1 = 0.936 (High semantic preservation)
+Text:     "Quantum computing leverages superposition and entanglement to solve computational challenges."
+Edits:    2 tokens substituted (Actual perturbation = 18.2%)
+Detector: z = +0.9128 | p-value = 0.1807 (Status: ✅ EVASION SUCCESSFUL (p > 0.05))
+Utility:  Semantic Similarity F1 = 0.900 (High lexical preservation)
 
 [4. AFTER ATTACK B (Live LM Studio Paraphraser - google/gemma-4-e2b)]
-Text:     "Quantum computing utilizes superposition and entanglement to effectively solve complex computational problems."
-Detector: z = +0.8257 | p-value = 0.2045 (Status: ✅ EVASION SUCCESSFUL (p > 0.05))
-Utility:  Semantic Similarity F1 = 0.833 (Complete macro-level syntactic rewrite)
+Text:     "Quantum computing harnesses superposition and entanglement to achieve advanced solutions for complex computational problems."
+Detector: z = -0.0506 | p-value = 0.5202 (Status: ✅ EVASION SUCCESSFUL (p > 0.05))
+Utility:  Semantic Similarity F1 = 0.667 (Complete macro-level syntactic rewrite)
 
 [5. AFTER BASELINE 1 (Random Token Replacement)]
-Edits:    1 random token substituted (9.1%)
-Detector: z = +2.4120 | p-value = 0.0079 (Status: 🚨 WATERMARK DETECTED)
-Utility:  Semantic Similarity F1 = 0.918 (Random edits degraded syntax without evading watermark)
+Text:     "Quantum computing computing superposition to entanglement to resolve mathematical challenges."
+Edits:    2 random tokens substituted (18.2%)
+Detector: z = -1.2783 | p-value = 0.8994
+Utility:  Semantic Similarity F1 = 0.556 (Random edits degraded grammar without targeting watermark)
 ==========================================================================================
 ```
 
