@@ -1139,6 +1139,35 @@ summary_df = df_results.groupby(["Method", "Budget"]).agg({
 summary_df.columns = ["Attack Method", "Budget (k)", "Actual Edits %", "Mean z-score", "Mean p-value", "Evasion Rate (p>0.05)", "BERTScore F1"]
 display(summary_df)
 
+# =========================================================================
+# Detailed Outputs for Successful Attacks During Testing
+# =========================================================================
+print("\n" + "=" * 90)
+print("🎯 SUCCESSFUL WATERMARK EVASION CASE STUDIES FROM BENCHMARK TESTING")
+print("=" * 90)
+
+# Display a concrete case study for Attack A and Attack B
+succ_a = next((r for r in results if r["Evaded"] and "Attack A" in r["Method"] and r["Budget"] in [0.10, 0.15]), None)
+if succ_a:
+    print(f"\n[CASE STUDY 1: {succ_a['Method']}]")
+    print(f"• Target Passage Length:   120 tokens | Budget k = {int(succ_a['Budget']*100)}%")
+    print(f"• Actual Perturbation:     {succ_a['Actual Edits %']:.1%} of tokens modified")
+    print(f"• Watermark Evasion:       ✅ SUCCESSFUL (p-value = {succ_a['p_value']:.4f} > 0.05, z = {succ_a['z_score']:+.4f})")
+    print(f"• Lexical Utility:         BERTScore F1 = {succ_a['BERTScore']:.4f}")
+    print(f"• Original Sample Text:    \"{clean_sample_text}\"")
+    print(f"• Watermarked Text:        \"{wm_text}\"")
+    print(f"• Evasion Text (Attacked):  \"{att_a_text}\"")
+
+succ_b = next((r for r in results if r["Evaded"] and "Attack B" in r["Method"]), None)
+if succ_b:
+    print("\n------------------------------------------------------------------------------------------")
+    print(f"[CASE STUDY 2: {succ_b['Method']} (Live LM Studio Paraphraser)]")
+    print(f"• Live Model Paraphrase:   \"{b_text}\"")
+    print(f"• Watermark Evasion:       ✅ SUCCESSFUL (p-value = {succ_b['p_value']:.4f} > 0.05, z = {succ_b['z_score']:+.4f})")
+    print(f"• Lexical Utility:         BERTScore F1 = {succ_b['BERTScore']:.4f}")
+    print(f"• Mechanism:               Complete macro-level syntactic rewrite by google/gemma-4-e2b")
+print("=" * 90 + "\n")
+
 # Plot Pareto Frontier
 plot_summary = df_results.groupby(["Method", "Budget"]).agg({
     "Evaded": "mean",
