@@ -1,0 +1,60 @@
+[2026-11-10T03:28:12.725Z] [CodeGraph daemon] Listening on /Users/funbandit/Desktop/GITHUB/CMPT419_Proj/.codegraph/daemon.sock (pid 2683, v1.6.2). Idle timeout 300000ms.
+[2026-11-10T03:28:12.918Z] [CodeGraph MCP] File watcher active for /Users/funbandit/Desktop/GITHUB/CMPT419_Proj — graph will auto-sync on changes
+[2026-11-10T03:28:12.920Z] [CodeGraph MCP] Query pool: up to 7 worker thread(s) for concurrent reads.
+[2026-11-10T03:40:23.411Z] [CodeGraph MCP] Auto-synced 1 file(s) in 251ms
+[2026-11-10T03:40:47.732Z] [CodeGraph MCP] Auto-synced 1 file(s) in 17ms
+[2026-11-10T03:40:54.335Z] [CodeGraph MCP] Auto-synced 1 file(s) in 11ms
+[2026-11-10T03:41:08.680Z] [CodeGraph MCP] Auto-synced 1 file(s) in 15ms
+[2026-11-10T03:41:55.992Z] [CodeGraph MCP] Auto-synced 1 file(s) in 32ms
+[2026-11-10T03:42:02.460Z] [CodeGraph MCP] Auto-synced 1 file(s) in 6ms
+[2026-11-10T03:42:16.349Z] [CodeGraph MCP] Auto-synced 1 file(s) in 11ms
+[2026-11-10T04:30:55.337Z] [CodeGraph MCP] Auto-synced 1 file(s) in 41ms
+[2026-11-10T04:32:38.971Z] [CodeGraph MCP] Auto-synced 1 file(s) in 24ms
+[2026-11-10T04:32:44.809Z] [CodeGraph MCP] Auto-synced 1 file(s) in 6ms
+[2026-11-10T07:11:26.298Z] [CodeGraph daemon] Shutting down (idle timeout; clients=0).
+[2026-11-10T16:02:31.887Z] [CodeGraph daemon] Listening on /Users/funbandit/Desktop/GITHUB/CMPT419_Proj/.codegraph/daemon.sock (pid 23265, v1.6.2). Idle timeout 300000ms.
+[2026-11-10T16:02:32.108Z] [CodeGraph MCP] File watcher active for /Users/funbandit/Desktop/GITHUB/CMPT419_Proj — graph will auto-sync on changes
+[2026-11-10T16:02:32.110Z] [CodeGraph MCP] Query pool: up to 7 worker thread(s) for concurrent reads.
+[2026-11-10T17:25:18.393Z] [CodeGraph MCP] Auto-synced 1 file(s) in 373ms
+[2026-11-10T17:34:28.821Z] [CodeGraph MCP] Auto-synced 1 file(s) in 55ms
+[2026-11-10T17:35:46.146Z] [CodeGraph MCP] Auto-synced 1 file(s) in 67ms
+[2026-11-10T17:35:54.710Z] [CodeGraph MCP] Auto-synced 1 file(s) in 9ms
+[2026-11-10T18:17:48.174Z] [CodeGraph MCP] Auto-synced 1 file(s) in 75ms
+[2026-11-10T18:19:30.774Z] [CodeGraph MCP] Auto-synced 1 file(s) in 167ms
+[2026-11-10T18:23:09.493Z] [CodeGraph MCP] Auto-synced 1 file(s) in 61ms
+[2026-11-10T18:23:21.989Z] [CodeGraph MCP] Auto-synced 1 file(s) in 29ms
+[2026-11-10T18:28:05.002Z] [CodeGraph MCP] Auto-synced 1 file(s) in 81ms
+[2026-11-10T18:28:30.926Z] [CodeGraph MCP] Auto-synced 1 file(s) in 21ms
+[2026-11-10T18:51:16.315Z] [CodeGraph MCP] Auto-synced 1 file(s) in 251ms
+[2026-11-10T19:01:41.640Z] [CodeGraph MCP] Auto-synced 1 file(s) in 92ms
+[2026-11-10T19:02:57.045Z] [CodeGraph MCP] Auto-synced 1 file(s) in 61ms
+[2026-11-10T19:04:53.302Z] [CodeGraph MCP] Auto-synced 1 file(s) in 86ms
+[2026-11-10T19:07:12.500Z] [CodeGraph MCP] Auto-synced 1 file(s) in 68ms
+[2026-11-10T19:19:57.254Z] [CodeGraph MCP] Auto-synced 1 file(s) in 115ms
+[2026-11-10T20:25:19.912Z] [CodeGraph MCP] Auto-synced 1 file(s) in 142ms
+[2026-11-10T20:25:32.391Z] [CodeGraph MCP] Auto-synced 1 file(s) in 52ms
+[2026-11-10T20:25:43.080Z] [CodeGraph MCP] Auto-synced 1 file(s) in 24ms
+[2026-11-10T20:25:49.425Z] [CodeGraph MCP] Auto-synced 1 file(s) in 12ms
+[2026-11-10T20:27:06.546Z] [CodeGraph MCP] Auto-synced 1 file(s) in 45ms
+[2026-11-10T20:55:58.164Z] [CodeGraph MCP] Auto-synced 1 file(s) in 107ms
+[2026-11-10T20:56:13.593Z] [CodeGraph MCP] Auto-synced 1 file(s) in 13ms
+[2026-11-10T20:56:24.044Z] [CodeGraph MCP] Auto-synced 1 file(s) in 14ms
+[2026-11-10T20:56:34.284Z] [CodeGraph MCP] Auto-synced 1 file(s) in 15ms
+[2026-11-10T22:59:00.741Z] [CodeGraph MCP] Auto-synced 1 file(s) in 89ms
+[2026-11-10T22:59:08.989Z] [CodeGraph MCP] Auto-synced 1 file(s) in 24ms
+[2026-11-10T22:59:56.354Z] [CodeGraph MCP] Auto-synced 1 file(s) in 42ms
+[2026-11-10T23:00:05.289Z] [CodeGraph MCP] Auto-synced 1 file(s) in 9ms
+[2026-11-10T23:01:27.116Z] [CodeGraph MCP] Auto-synced 1 file(s) in 28ms
+[2026-11-10T23:01:30.411Z] [CodeGraph MCP] Auto-synced 1 file(s) in 17ms
+[2026-11-10T23:10:28.079Z] [CodeGraph MCP] Auto-synced 1 file(s) in 80ms
+[2026-11-10T23:11:01.637Z] [CodeGraph MCP] Auto-synced 1 file(s) in 83ms
+[2026-11-10T23:24:24.707Z] [CodeGraph MCP] Auto-synced 1 file(s) in 145ms
+[2026-11-10T23:50:29.567Z] [CodeGraph daemon] Shutting down (idle timeout; clients=0).
+[2026-11-11T17:30:27.812Z] [CodeGraph daemon] Listening on /Users/funbandit/Desktop/GITHUB/CMPT419_Proj/.codegraph/daemon.sock (pid 41533, v1.6.2). Idle timeout 300000ms.
+[2026-11-11T17:30:28.710Z] [CodeGraph MCP] File watcher active for /Users/funbandit/Desktop/GITHUB/CMPT419_Proj — graph will auto-sync on changes
+[2026-11-11T17:30:28.711Z] [CodeGraph MCP] Query pool: up to 7 worker thread(s) for concurrent reads.
+[2026-11-11T18:35:51.765Z] [CodeGraph daemon] Shutting down (idle timeout; clients=0).
+[2026-11-18T03:30:34.867Z] [CodeGraph daemon] Listening on /Users/funbandit/Desktop/GITHUB/CMPT419_Proj/.codegraph/daemon.sock (pid 83583, v1.6.2). Idle timeout 300000ms.
+[2026-11-18T03:30:35.229Z] [CodeGraph MCP] File watcher active for /Users/funbandit/Desktop/GITHUB/CMPT419_Proj — graph will auto-sync on changes
+[2026-11-18T03:30:35.231Z] [CodeGraph MCP] Query pool: up to 7 worker thread(s) for concurrent reads.
+[2026-11-18T04:39:24.611Z] [CodeGraph daemon] Shutting down (idle timeout; clients=0).
